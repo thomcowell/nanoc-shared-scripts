@@ -34,6 +34,14 @@ function read_deploy_config() {
         echo -e "${FAIL} cloudfront_distribution_id not set in nanoc.yaml (under ${block_name}:) — please replace <DISTRIBUTION_ID>"
         exit 5
     fi
+    S3_SYNC_EXCLUDES=""
+    local exclude_block
+    exclude_block=$(awk "/^${block_name}:/{found=1; next} found && /^[^ ]/{exit} found" "$config_file" \
+        | awk '/s3_sync_exclude:/{found=1; next} found && /^    -/{print; next} found{exit}')
+    if [[ -n "$exclude_block" ]]; then
+        S3_SYNC_EXCLUDES=$(echo "$exclude_block" | sed 's/^[[:space:]]*- *//' | tr -d '"')
+    fi
+
     echo -e "${PASS} [${env_label}] ${AWS_REGION} Deploy target: s3://${S3_BUCKET}  CF: ${CF_DIST_ID}"
 }
 

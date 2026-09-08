@@ -323,7 +323,13 @@ check_aws_auth
 
 if [[ "$STAGING" == true ]]; then
     echo -e "${PASS} Deploying to s3://${S3_BUCKET}/ (staging — full sync)..."
-    aws s3 sync "${current_dir}/output/" "s3://${S3_BUCKET}/" --delete
+    local exclude_args=""
+    if [[ -n "${S3_SYNC_EXCLUDES:-}" ]]; then
+        while IFS= read -r pattern; do
+            [[ -n "$pattern" ]] && exclude_args+=" --exclude ${pattern}"
+        done <<< "$S3_SYNC_EXCLUDES"
+    fi
+    aws s3 sync "${current_dir}/output/" "s3://${S3_BUCKET}/" --delete $exclude_args
     echo -e "${PASS} Invalidating all paths on CloudFront distribution ${CF_DIST_ID}..."
     aws cloudfront create-invalidation \
         --distribution-id "$CF_DIST_ID" \
